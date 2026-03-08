@@ -9,17 +9,12 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 async function apiFetch(path, options = {}) {
-  try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json", ...options.headers },
-      ...options,
-    });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
-  } catch (err) {
-    console.warn(`[API] ${path} failed, using mock data:`, err.message);
-    return null; // caller should fall back to mock
-  }
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json", ...options.headers },
+    ...options,
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return await res.json();
 }
 
 // ─── Articles ─────────────────────────────────────────────────────────────────

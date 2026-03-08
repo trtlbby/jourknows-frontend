@@ -344,7 +344,7 @@ function SectionHeader({ label, color, alignRight = false }) {
 // ─── Pages ────────────────────────────────────────────────────────────────────
 
 function HomePage({ onArticleClick }) {
-  const { data: allArticlesData } = useArticles();
+  const { data: allArticlesData, isLoading, isError } = useArticles();
   const allArticles = allArticlesData?.articles || MOCK_ARTICLES;
 
   const heroArticle = allArticles[0] || createMockArticle();
@@ -751,7 +751,7 @@ function ArticlePage({ articleSlug, onBack, onArticleClick }) {
 
 function SectionPage({ section, onArticleClick }) {
   const sec = SECTIONS.find(s => s.slug === section) || SECTIONS[0];
-  const { data: articlesData } = useArticles(sec.slug);
+  const { data: articlesData, isLoading } = useArticles(sec.slug);
   const catArticles = articlesData?.articles || MOCK_ARTICLES.filter(a => a.category?.slug === sec.slug);
   const topArticle = catArticles[0] || createMockArticle({ category: { name: sec.label, slug: sec.slug } });
   const restArticles = catArticles.slice(1);

@@ -27,7 +27,8 @@ export function useArticles(categorySlug = null, page = 1) {
       total: MOCK_ARTICLES.length,
       page: 1,
     },
-    staleTime: 60_000, // 1 min
+    staleTime: 60_000,
+    retry: 1,
   });
 }
 
@@ -38,6 +39,7 @@ export function useArticle(slug) {
     placeholderData: MOCK_ARTICLES.find((a) => a.slug === slug) || createMockArticle({ slug }),
     enabled: !!slug,
     staleTime: 60_000,
+    retry: 1,
   });
 }
 
