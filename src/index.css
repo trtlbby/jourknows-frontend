@@ -75,3 +75,102 @@ textarea {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ─── Responsive Adjustments ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Hide specific desktop elements */
+  .hide-on-mobile {
+    display: none !important;
+  }
+  
+  /* Show specific mobile elements */
+  .show-on-mobile {
+    display: block !important;
+  }
+
+  /* Structural containers */
+  .container-padding {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  .section-padding {
+    padding: 32px 16px !important;
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 32px !important;
+    line-height: 1.2 !important;
+  }
+  h2 {
+    font-size: 24px !important;
+  }
+  
+  /* Grids to Columns */
+  .grid-to-col {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-to-col-2 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Flex to Col */
+  .flex-to-col {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Specific Components */
+  .article-content {
+    padding: 24px 16px !important;
+  }
+  
+  .author-bio {
+    flex-direction: column !important;
+    text-align: center !important;
+    padding: 24px 16px !important;
+  }
+  
+  .author-bio > div:first-child {
+    flex: unset !important;
+    margin: 0 auto 16px !important;
+  }
+
+  /* Nav Links overflow */
+  .nav-links-scroll {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+  }
+  
+  /* Hide scrollbar for nav */
+  .nav-links-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Cards */
+  .card-collapse {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+  .card-collapse > div:first-child {
+    flex: unset !important;
+    width: 100% !important;
+    height: 200px !important;
+  }
+  .card-collapse > div:last-child {
+    padding: 16px !important;
+  }
+}
+
+/* Default show-on-mobile to hidden on desktop */
+@media (min-width: 769px) {
+  .show-on-mobile {
+    display: none !important;
+  }
+}

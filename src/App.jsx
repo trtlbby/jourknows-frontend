@@ -7,7 +7,7 @@ import ArticleJsonLd from "./components/ArticleJsonLd";
 
 import { 
   Search, Mail, Instagram, Facebook, Twitter, Chrome,
-  ThumbsUp, Heart, Smile, Star, Frown, Angry
+  ThumbsUp, Heart, Smile, Star, Frown, Angry, Menu, X
 } from "lucide-react";
 
 // ─── Shared UI Helpers ────────────────────────────────────────────────────────
@@ -79,6 +79,7 @@ function Navbar({ categories = [] }) {
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   let active = "HOME";
   if (path !== "/") {
@@ -92,29 +93,46 @@ function Navbar({ categories = [] }) {
 
   const navLinks = ["HOME", ...categories.map(c => c.name.toUpperCase())];
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [path]);
+
   return (
     <header id="main-navbar" style={{
       position: "sticky", top: 0, zIndex: 100,
-      background: "linear-gradient(135deg,#000080 0%,#000055 100%)",
-      boxShadow: "0 2px 16px rgba(0,0,77,0.5)",
+      background: "rgba(0, 4, 109, 0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+      borderBottom: "1px solid rgba(255,255,255,0.1)",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
     }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", alignItems: "center", padding: "0 24px", height: 72 }}>
-        <Search size={22} color="#fff" style={{ marginRight: 12, opacity: 0.7, cursor: "pointer" }} />
+      <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", height: 72, position: "relative" }}>
+        {/* Left: Search (Desktop) / Hamburger (Mobile) */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+          <button className="hide-on-mobile" style={{ background: "none", border: "none", display: "flex" }}>
+            <Search size={22} color="#fff" style={{ opacity: 0.85, cursor: "pointer", transition: "opacity .2s" }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.85} />
+          </button>
+          <button className="show-on-mobile" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: "none", border: "none", display: "flex", color: "#fff" }}>
+            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
 
+        {/* Center: Logo */}
         <div
           onClick={() => navigate("/")}
-          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flex: 1, justifyContent: "center" }}
+          style={{ cursor: "pointer", position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center" }}
         >
-          <div style={{ width: 54, height: 54, borderRadius: 8, background: "#fafafa", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 28, color: "#00046D", letterSpacing: -1 }}>JK</span>
+          <div style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.2)", transition: "background .2s" }} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.2)"} onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}>
+            <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 24, color: "#fff", letterSpacing: -1 }}>JourKnows</span>
           </div>
         </div>
 
-        <nav style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {/* Right: Desktop Links */}
+        <nav className="hide-on-mobile" style={{ flex: 1, display: "flex", gap: 32, justifyContent: "flex-end", alignItems: "center" }}>
           {navLinks.map(link => {
             const isHome = link === "HOME";
             const targetCat = categories.find(c => c.name.toUpperCase() === link);
             const targetSlug = isHome ? "/" : `/${targetCat?.slug || link.toLowerCase()}`;
+            const isActive = active === link || active === targetCat?.slug.toUpperCase();
             return (
               <button
                 key={link}
@@ -123,19 +141,62 @@ function Navbar({ categories = [] }) {
                 style={{
                   background: "none", border: "none", cursor: "pointer",
                   fontFamily: "Montserrat, sans-serif",
-                  fontWeight: active === link || active === targetCat?.slug.toUpperCase() ? 800 : 600,
+                  fontWeight: isActive ? 800 : 500,
                   fontSize: 13,
-                  color: active === link || active === targetCat?.slug.toUpperCase() ? "#ffffff" : "rgba(255,255,255,0.75)",
-                  borderBottom: active === link || active === targetCat?.slug.toUpperCase() ? "2px solid #fff" : "2px solid transparent",
-                  paddingBottom: 2,
+                  color: isActive ? "#ffffff" : "rgba(255,255,255,0.7)",
+                  position: "relative",
+                  padding: "4px 0",
                   letterSpacing: 0.5,
-                  transition: "all .2s",
+                  transition: "color .2s",
                 }}
-              >{link}</button>
+                onMouseEnter={e => e.currentTarget.style.color = "#fff"}
+                onMouseLeave={e => e.currentTarget.style.color = isActive ? "#fff" : "rgba(255,255,255,0.7)"}
+              >
+                {link}
+                {/* Active Indicator Underline */}
+                <div style={{
+                  position: "absolute", bottom: -2, left: isActive ? 0 : "50%", right: isActive ? 0 : "50%", height: 2, background: "#fff",
+                  transition: "left .2s ease-out, right .2s ease-out", opacity: isActive ? 1 : 0
+                }} />
+              </button>
             )
           })}
         </nav>
+        
+        {/* Right: Mobile Search Icon */}
+        <div className="show-on-mobile" style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+           <Search size={22} color="#fff" style={{ opacity: 0.85, cursor: "pointer" }} />
+        </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="show-on-mobile" style={{
+          position: "absolute", top: 72, left: 0, right: 0, background: "rgba(0, 4, 109, 0.95)", backdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "16px 24px 32px", display: "flex", flexDirection: "column", gap: 20,
+          boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
+        }}>
+          {navLinks.map(link => {
+            const isHome = link === "HOME";
+            const targetCat = categories.find(c => c.name.toUpperCase() === link);
+            const targetSlug = isHome ? "/" : `/${targetCat?.slug || link.toLowerCase()}`;
+            const isActive = active === link || active === targetCat?.slug.toUpperCase();
+            return (
+              <button
+                key={link}
+                onClick={() => navigate(targetSlug)}
+                style={{
+                  background: "none", border: "none", cursor: "pointer", textAlign: "left",
+                  fontFamily: "Montserrat, sans-serif", fontWeight: isActive ? 800 : 500, fontSize: 18,
+                  color: isActive ? "#fff" : "rgba(255,255,255,0.75)", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: 12
+                }}
+              >
+                {link}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </header>
   );
 }
@@ -147,7 +208,7 @@ function Footer() {
       padding: "48px 48px 0",
       color: "rgba(255,255,255,0.85)",
     }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: 40 }}>
+      <div className="grid-to-col" style={{ maxWidth: 1400, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: 40, padding: "0 16px" }}>
         <div>
           <div style={{ width: 96, height: 96, borderRadius: 12, marginBottom: 16, background: "#fafafa", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 42, color: "#00046D", letterSpacing: -2 }}>JK</span>
@@ -188,7 +249,7 @@ function Footer() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 32 }}>
+        <div className="flex-to-col" style={{ display: "flex", gap: 32 }}>
           <div>
             <p style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 800, fontSize: 14, marginBottom: 8 }}>JourKnows PH</p>
             {["About Us", "Contact Us", "Privacy Policy"].map(l => (
@@ -274,6 +335,7 @@ function MediumCard({ article }) {
   const navigate = useNavigate();
   return (
     <div
+      className="card-collapse"
       onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
       style={{
         background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
@@ -307,6 +369,7 @@ function HeaderCard({ article }) {
   const navigate = useNavigate();
   return (
     <div
+      className="card-collapse"
       onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
       style={{
         background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
@@ -396,7 +459,7 @@ function HomePage({ categories = [] }) {
           position: "absolute", inset: 0,
           background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 80%)",
         }} />
-        <div style={{ position: "absolute", bottom: 48, left: 80, right: 80 }}>
+        <div className="container-padding" style={{ position: "absolute", bottom: 48, left: 80, right: 80 }}>
           <div style={{
             display: "inline-block", background: "#fafafa",
             padding: "4px 16px", borderRadius: 20, marginBottom: 12,
@@ -441,12 +504,12 @@ function HomePage({ categories = [] }) {
       </div>
 
       {/* LATEST SECTION */}
-      <div style={{ background: "#fff", padding: "32px 80px 40px" }}>
+      <div className="section-padding" style={{ background: "#fff", padding: "32px 80px 40px" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
           <h2 style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 800, fontSize: 24, color: "#1a1a1a", margin: 0 }}>LATEST</h2>
           <div style={{ flex: 1, height: 3, background: "linear-gradient(to right,#041eb0,#fffbfb)", marginLeft: 12, borderRadius: 2 }} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="grid-to-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {latestArticles.map((article) => (
             <MediumCard key={article.id} article={article} />
           ))}
@@ -469,12 +532,12 @@ function HomePage({ categories = [] }) {
           }
 
           return (
-            <div key={slug} style={{ padding: "32px 80px 48px", position: "relative" }}>
+            <div key={slug} className="section-padding" style={{ padding: "32px 80px 48px", position: "relative" }}>
               <SectionHeader label={label} color={color} />
               <div style={{ marginBottom: 24 }}>
                 <HeaderCard article={topArticle} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
+              <div className="grid-to-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
                 {restArticles.map((article, i) => (
                   <SmallCard key={article.id || i} article={article} />
                 ))}
@@ -485,14 +548,14 @@ function HomePage({ categories = [] }) {
       </div>
 
       {/* KNOW THE LINE */}
-      <div style={{ padding: "32px 80px 48px", background: "#fff" }}>
+      <div className="section-padding" style={{ padding: "32px 80px 48px", background: "#fff" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
           <div style={{ background: "#00046D", padding: "10px 20px" }}>
             <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 800, fontSize: 22, color: "#fafafa" }}>KNOW THE LINE</span>
           </div>
           <div style={{ flex: 1, height: 4, borderRadius: 2, background: "linear-gradient(to right, #041eb0, #fffbfb)" }} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 24 }}>
+        <div className="grid-to-col" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 24 }}>
           {getArticlesForCategory("literary").slice(0, 4).map((article, i) => (
             <SmallCard key={article.id || i} article={article} />
           ))}
@@ -569,7 +632,7 @@ function ArticlePage() {
       <div style={{ position: "relative", height: 480, background: "#d9d9d9", overflow: "hidden" }}>
         {article.coverImageUrl && <img src={article.coverImageUrl} alt="hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.65) 80%)" }} />
-        <div style={{ position: "absolute", bottom: 40, left: 80, right: 80 }}>
+        <div className="container-padding" style={{ position: "absolute", bottom: 40, left: 80, right: 80 }}>
           <div style={{ display: "inline-block", background: "#fafafa", padding: "4px 16px", borderRadius: 20, marginBottom: 10, boxShadow: "0 4px 4px rgba(0,0,0,.5)" }}>
             <span style={{
               fontFamily: "Montserrat,sans-serif", fontWeight: 700, fontSize: 14,
@@ -600,7 +663,7 @@ function ArticlePage() {
       </div>
 
       {/* ARTICLE CONTENT */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 40px 0" }}>
+      <div className="article-content" style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 40px 0" }}>
         {/* Meta: publishedAt from backend */}
         <p style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 600, fontSize: 14, color: "rgba(30,30,30,0.6)", marginBottom: 24 }}>
           Published {formatDateTime(article.publishedAt)}
@@ -674,7 +737,7 @@ function ArticlePage() {
           background: "#fafafa", borderRadius: 16, marginBottom: 40, overflow: "hidden",
         }}>
           <div style={{ background: "linear-gradient(to right,#170075,#2c00db)", height: 4 }} />
-          <div style={{ padding: "32px", display: "flex", gap: 32, alignItems: "flex-start" }}>
+          <div className="author-bio" style={{ padding: "32px", display: "flex", gap: 32, alignItems: "flex-start" }}>
             <div style={{ flex: "0 0 200px" }}>
               {article.author?.avatarUrl ? (
                 <img src={article.author.avatarUrl} alt="author" style={{ width: 200, height: 240, objectFit: "cover", borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,.2)" }} />
@@ -711,7 +774,7 @@ function ArticlePage() {
             Leave a comment below about the article or show your reaction by clicking up above. All personal information will be kept confidential. Required fields are marked <span style={{ color: "#ff4646" }}>*</span>.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
+          <div className="grid-to-col-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40 }}>
             {/* Comment list */}
             <div>
               <h3 style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 800, fontSize: 22, color: "#1e1e1e", marginBottom: 20 }}>Comments</h3>
@@ -795,7 +858,7 @@ function ArticlePage() {
           <h2 style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 800, fontSize: 26, color: "#000055", marginBottom: 24 }}>
             RELATED ARTICLES
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20, marginBottom: 48 }}>
+          <div className="grid-to-col" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20, marginBottom: 48 }}>
             {relatedArticles.map((a, i) => (
               <SmallCard key={a.id || i} article={a} />
             ))}
@@ -832,7 +895,7 @@ function SectionPage({ categories = [] }) {
       {/* Hero banner */}
       <div style={{ position: "relative", height: 320, background: "#1a1a1a", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom,rgba(0,0,0,.2),${color})`, opacity: 0.85 }} />
-        <div style={{ position: "absolute", bottom: 40, left: 80 }}>
+        <div className="container-padding" style={{ position: "absolute", bottom: 40, left: 16 }}>
           <h1 style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 48, color: "#fff", margin: "0 0 8px", textTransform: "uppercase" }}>
             {categoryMatch.name}
           </h1>
@@ -842,7 +905,7 @@ function SectionPage({ categories = [] }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1300, margin: "0 auto", padding: "40px 80px" }}>
+      <div className="section-padding" style={{ maxWidth: 1300, margin: "0 auto", padding: "40px 80px" }}>
         {/* Top article */}
         <div style={{ marginBottom: 32 }}>
           <SectionHeader label="TOP ARTICLES" color={color} />
@@ -852,7 +915,7 @@ function SectionPage({ categories = [] }) {
         {/* Latest in section */}
         <div>
           <SectionHeader label="LATEST" color={color} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, marginBottom: 24 }}>
+          <div className="grid-to-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, marginBottom: 24 }}>
             {restArticles.map((article, i) => (
               <SmallCard key={article.id || i} article={article} />
             ))}
