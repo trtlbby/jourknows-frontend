@@ -1,51 +1,46 @@
 import { useState, useCallback, useEffect } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import { MOCK_CATEGORIES, MOCK_ARTICLES, createMockArticle } from "./services/api";
-import { useArticles, useArticle, useReactions, useSubmitReaction, useComments, useSubmitComment } from "./hooks/useArticles";
+import { useArticles, useArticle, useCategories, useReactions, useSubmitReaction, useComments, useSubmitComment } from "./hooks/useArticles";
 import SEOHead from "./components/SEOHead";
 import ArticleJsonLd from "./components/ArticleJsonLd";
 
-// ─── Asset URLs (from Figma) ──────────────────────────────────────────────────
-const LOGO       = "https://www.figma.com/api/mcp/asset/10230cad-3002-4e4d-b964-2e3e2f2df496";
-const HERO_IMG   = "https://www.figma.com/api/mcp/asset/efb1c652-fa66-4d27-a71f-a50150c59bf9";
-const AUTHOR_IMG = "https://www.figma.com/api/mcp/asset/c3dea2c0-a640-40a4-96c3-3f0c52574711";
-const SEARCH_ICON = "https://www.figma.com/api/mcp/asset/0826f66e-7363-4bd7-af2a-a6943955ff8a";
-const LETTER_ICON = "https://www.figma.com/api/mcp/asset/49ecb15a-e553-4c2a-ae4a-d40d7fbbc864";
-const IG_ICON    = "https://www.figma.com/api/mcp/asset/e92c90b3-55ed-43b3-a0cd-fbb625a776f7";
-const FB_ICON    = "https://www.figma.com/api/mcp/asset/4b7d24fd-7339-48ae-82ff-9a80ce2dcf06";
-const X_ICON     = "https://www.figma.com/api/mcp/asset/1484dcd9-c91f-40f4-b9cd-3e5c630c8ff0";
-const GMAIL_ICON = "https://www.figma.com/api/mcp/asset/63525b62-7df7-416d-935a-00b1f339a315";
+import { 
+  Search, Mail, Instagram, Facebook, Twitter, Chrome,
+  ThumbsUp, Heart, Smile, Star, Frown, Angry
+} from "lucide-react";
 
-// Reaction emoji images — aligned to backend enum: like, love, haha, wow, sad, angry
-// "Dislike" removed (not in backend schema), "Heart" → love, "Laugh" → haha
-const REACT_LIKE  = "https://www.figma.com/api/mcp/asset/9e43a404-b97f-4f25-916a-e1225a5bbe6e";
-const REACT_LOVE  = "https://www.figma.com/api/mcp/asset/348a674e-4ac5-4ca2-be98-18c16fd8d2b6";
-const REACT_HAHA  = "https://www.figma.com/api/mcp/asset/3e9faf44-04e7-416c-990b-ee89a3561f35";
-const REACT_WOW   = "https://www.figma.com/api/mcp/asset/2905cdf8-4c42-477f-ae89-cee1fd27fec7";
-const REACT_SAD   = "https://www.figma.com/api/mcp/asset/575305df-e735-442f-9fb4-3ca1a0d23215";
-const REACT_ANGRY = "https://www.figma.com/api/mcp/asset/a4a9dfee-674e-4083-9f76-3770bd9535e9";
+// ─── Shared UI Helpers ────────────────────────────────────────────────────────
+function LoadingSpinner({ message = "Loading..." }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "40vh", gap: 16 }}>
+      <div className="spinner" style={{
+        width: 40, height: 40, border: "4px solid rgba(0,4,109,0.1)", borderTop: "4px solid #00046D",
+        borderRadius: "50%", animation: "spin 1s linear infinite"
+      }} />
+      <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 16, color: "#555", fontWeight: 600 }}>{message}</p>
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const NAV_LINKS = ["HOME","NEWS","OPINION","FEATURES","SPORTS","SCI-TECH","LITERARY"];
 
-// Section display config — colors are frontend-only presentation
-const SECTIONS = [
-  { label: "NEWS",                 slug: "news",     color: "#00046D" },
-  { label: "OPINION",             slug: "opinion",  color: "#00046D" },
-  { label: "FEATURES & LIFESTYLE", slug: "features", color: "#F8A42E" },
-  { label: "SPORTS",              slug: "sports",   color: "#020269" },
-  { label: "SCI-TECH",            slug: "sci-tech", color: "#314DEB" },
-  { label: "LITERARY",            slug: "literary", color: "#AE1914" },
-];
+// Fallback Section display config if backend has no colors defined
+const FALLBACK_CATEGORY_COLORS = {
+  news: "#00046D", opinion: "#00046D", features: "#F8A42E",
+  sports: "#020269", "sci-tech": "#314DEB", literary: "#AE1914",
+  default: "#1e1e1e"
+};
 
 // Reactions aligned to backend reaction_type enum values
 const REACTIONS = [
-  { icon: REACT_LIKE,  type: "like",  label: "Like"  },
-  { icon: REACT_LOVE,  type: "love",  label: "Love"  },
-  { icon: REACT_HAHA,  type: "haha",  label: "Haha"  },
-  { icon: REACT_WOW,   type: "wow",   label: "Wow"   },
-  { icon: REACT_SAD,   type: "sad",   label: "Sad"   },
-  { icon: REACT_ANGRY, type: "angry", label: "Angry" },
+  { icon: ThumbsUp, type: "like",  label: "Like",  color: "#3b5998" },
+  { icon: Heart,    type: "love",  label: "Love",  color: "#e0245e" },
+  { icon: Smile,    type: "haha",  label: "Haha",  color: "#f5a623" },
+  { icon: Star,     type: "wow",   label: "Wow",   color: "#f5a623" },
+  { icon: Frown,    type: "sad",   label: "Sad",   color: "#4a90e2" },
+  { icon: Angry,    type: "angry", label: "Angry", color: "#d0021b" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -80,7 +75,7 @@ function timeAgo(dateStr) {
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
-function Navbar() {
+function Navbar({ categories = [] }) {
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
@@ -95,6 +90,8 @@ function Navbar() {
     }
   }
 
+  const navLinks = ["HOME", ...categories.map(c => c.name.toUpperCase())];
+
   return (
     <header id="main-navbar" style={{
       position: "sticky", top: 0, zIndex: 100,
@@ -102,34 +99,41 @@ function Navbar() {
       boxShadow: "0 2px 16px rgba(0,0,77,0.5)",
     }}>
       <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", alignItems: "center", padding: "0 24px", height: 72 }}>
-        <img src={SEARCH_ICON} alt="search" style={{ width: 22, height: 22, marginRight: 12, opacity: 0.7, cursor: "pointer" }} />
+        <Search size={22} color="#fff" style={{ marginRight: 12, opacity: 0.7, cursor: "pointer" }} />
 
         <div
           onClick={() => navigate("/")}
           style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flex: 1, justifyContent: "center" }}
         >
-          <img src={LOGO} alt="JourKnows" style={{ width: 54, height: 54, borderRadius: 8 }} />
+          <div style={{ width: 54, height: 54, borderRadius: 8, background: "#fafafa", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 28, color: "#00046D", letterSpacing: -1 }}>JK</span>
+          </div>
         </div>
 
-        <nav style={{ display: "flex", gap: 28 }}>
-          {NAV_LINKS.map(link => (
-            <button
-              key={link}
-              id={`nav-${link.toLowerCase()}`}
-              onClick={() => navigate(link === "HOME" ? "/" : `/${link.toLowerCase()}`)}
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                fontFamily: "Montserrat, sans-serif",
-                fontWeight: active === link ? 800 : 600,
-                fontSize: 13,
-                color: active === link ? "#ffffff" : "rgba(255,255,255,0.75)",
-                borderBottom: active === link ? "2px solid #fff" : "2px solid transparent",
-                paddingBottom: 2,
-                letterSpacing: 0.5,
-                transition: "all .2s",
-              }}
-            >{link}</button>
-          ))}
+        <nav style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {navLinks.map(link => {
+            const isHome = link === "HOME";
+            const targetCat = categories.find(c => c.name.toUpperCase() === link);
+            const targetSlug = isHome ? "/" : `/${targetCat?.slug || link.toLowerCase()}`;
+            return (
+              <button
+                key={link}
+                id={`nav-${link.toLowerCase()}`}
+                onClick={() => navigate(targetSlug)}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontFamily: "Montserrat, sans-serif",
+                  fontWeight: active === link || active === targetCat?.slug.toUpperCase() ? 800 : 600,
+                  fontSize: 13,
+                  color: active === link || active === targetCat?.slug.toUpperCase() ? "#ffffff" : "rgba(255,255,255,0.75)",
+                  borderBottom: active === link || active === targetCat?.slug.toUpperCase() ? "2px solid #fff" : "2px solid transparent",
+                  paddingBottom: 2,
+                  letterSpacing: 0.5,
+                  transition: "all .2s",
+                }}
+              >{link}</button>
+            )
+          })}
         </nav>
       </div>
     </header>
@@ -145,9 +149,11 @@ function Footer() {
     }}>
       <div style={{ maxWidth: 1400, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: 40 }}>
         <div>
-          <img src={LOGO} alt="JourKnows" style={{ width: 96, height: 96, borderRadius: 12, marginBottom: 12 }} />
+          <div style={{ width: 96, height: 96, borderRadius: 12, marginBottom: 16, background: "#fafafa", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 42, color: "#00046D", letterSpacing: -2 }}>JK</span>
+          </div>
           <p style={{ fontSize: 10, opacity: .8, lineHeight: 1.7, maxWidth: 220 }}>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            JourKnows is your premier campus journalism platform. Find the latest news, opinion pieces, features, and sports updates all in one place.
           </p>
         </div>
 
@@ -156,8 +162,8 @@ function Footer() {
             Subscribe to our newsletter
           </p>
           <div style={{ display: "flex", gap: 0, marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", border: "1px solid rgba(250,250,250,0.6)", borderRadius: 5, overflow: "hidden", flex: 1 }}>
-              <img src={LETTER_ICON} alt="" style={{ width: 16, height: 24, margin: "0 8px", objectFit: "contain" }} />
+            <div style={{ display: "flex", alignItems: "center", border: "1px solid rgba(250,250,250,0.6)", borderRadius: 5, overflow: "hidden", flex: 1, paddingLeft: 8 }}>
+              <Mail size={16} color="rgba(255,255,255,0.6)" />
               <input
                 id="newsletter-email"
                 placeholder="your@email.com"
@@ -174,10 +180,11 @@ function Footer() {
               color: "#00046D", fontSize: 11, padding: "0 14px", borderRadius: "0 5px 5px 0",
             }}>SUBSCRIBE</button>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {[FB_ICON, X_ICON, IG_ICON, GMAIL_ICON].map((ic, i) => (
-              <img key={i} src={ic} alt="" style={{ width: 36, height: 20, objectFit: "contain", cursor: "pointer" }} />
-            ))}
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <Facebook size={24} style={{ cursor: "pointer", opacity: 0.8 }} />
+            <Twitter size={24} style={{ cursor: "pointer", opacity: 0.8 }} />
+            <Instagram size={24} style={{ cursor: "pointer", opacity: 0.8 }} />
+            <Chrome size={24} style={{ cursor: "pointer", opacity: 0.8 }} />
           </div>
         </div>
 
@@ -361,10 +368,12 @@ function SectionHeader({ label, color, alignRight = false }) {
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 
-function HomePage() {
+function HomePage({ categories = [] }) {
   const navigate = useNavigate();
   const { data: allArticlesData, isLoading, isError } = useArticles();
   const allArticles = allArticlesData?.articles || MOCK_ARTICLES;
+
+  if (isLoading) return <LoadingSpinner message="Loading latest news..." />;
 
   const heroArticle = allArticles[0] || createMockArticle();
   const latestArticles = allArticles.slice(0, 4);
@@ -381,8 +390,8 @@ function HomePage() {
       />
 
       {/* HERO */}
-      <div id="hero-section" style={{ position: "relative", height: 520, overflow: "hidden" }}>
-        <img src={heroArticle.coverImageUrl || HERO_IMG} alt="hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      <div id="hero-section" style={{ position: "relative", height: 520, background: "#d9d9d9", overflow: "hidden" }}>
+        {heroArticle.coverImageUrl && <img src={heroArticle.coverImageUrl} alt="hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         <div style={{
           position: "absolute", inset: 0,
           background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 80%)",
@@ -408,7 +417,11 @@ function HomePage() {
           </h1>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <img src={heroArticle.author?.avatarUrl || AUTHOR_IMG} alt="" style={{ width: 52, height: 62, objectFit: "cover", borderRadius: 4 }} />
+              {heroArticle.author?.avatarUrl ? (
+                <img src={heroArticle.author.avatarUrl} alt="" style={{ width: 52, height: 62, objectFit: "cover", borderRadius: 4 }} />
+              ) : (
+                <div style={{ width: 52, height: 62, background: "#rgba(255,255,255,0.2)", borderRadius: 4, border: "2px solid rgba(255,255,255,0.4)" }} />
+              )}
               <span style={{ fontFamily: "Inter,sans-serif", fontStyle: "italic", color: "#fafafa", fontSize: 16, textShadow: "0 2px 4px rgba(0,0,0,.4)" }}>
                 by {heroArticle.author?.fullName || "Unknown Author"}
               </span>
@@ -442,8 +455,13 @@ function HomePage() {
 
       {/* CATEGORY SECTIONS */}
       <div style={{ background: "rgba(250,250,250,0.7)" }}>
-        {SECTIONS.map(({ label, slug, color }) => {
+        {categories.map((cat) => {
+          const { name: label, slug } = cat;
+          const color = FALLBACK_CATEGORY_COLORS[slug] || FALLBACK_CATEGORY_COLORS.default;
+          
           const catArticles = getArticlesForCategory(slug);
+          // Only show section if articles exist or we're using mock data
+          if (catArticles.length === 0 && !MOCK_ARTICLES.length) return null;
           const topArticle = catArticles[0] || createMockArticle({ category: { name: label, slug } });
           const restArticles = catArticles.slice(1, 4);
           while (restArticles.length < 3) {
@@ -518,11 +536,7 @@ function ArticlePage() {
   }, [comment, submitCommentMutation]);
 
   if (articleLoading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
-        <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 18, color: "#888" }}>Loading article...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Reading article..." />;
   }
 
   if (!article) {
@@ -552,8 +566,8 @@ function ArticlePage() {
       <ArticleJsonLd article={article} />
 
       {/* HERO */}
-      <div style={{ position: "relative", height: 480, overflow: "hidden" }}>
-        <img src={article.coverImageUrl || HERO_IMG} alt="hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      <div style={{ position: "relative", height: 480, background: "#d9d9d9", overflow: "hidden" }}>
+        {article.coverImageUrl && <img src={article.coverImageUrl} alt="hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.65) 80%)" }} />
         <div style={{ position: "absolute", bottom: 40, left: 80, right: 80 }}>
           <div style={{ display: "inline-block", background: "#fafafa", padding: "4px 16px", borderRadius: 20, marginBottom: 10, boxShadow: "0 4px 4px rgba(0,0,0,.5)" }}>
@@ -567,7 +581,11 @@ function ArticlePage() {
           </h1>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <img src={article.author?.avatarUrl || AUTHOR_IMG} alt="" style={{ width: 48, height: 58, objectFit: "cover", borderRadius: 4 }} />
+              {article.author?.avatarUrl ? (
+                <img src={article.author.avatarUrl} alt="" style={{ width: 48, height: 58, objectFit: "cover", borderRadius: 4 }} />
+              ) : (
+                <div style={{ width: 48, height: 58, background: "rgba(255,255,255,0.2)", borderRadius: 4, border: "2px solid rgba(255,255,255,0.4)" }} />
+              )}
               <span style={{ fontFamily: "Inter,sans-serif", fontStyle: "italic", color: "#fafafa", fontSize: 15 }}>
                 by {article.author?.fullName || "Unknown Author"}
               </span>
@@ -627,21 +645,22 @@ function ArticlePage() {
         {/* REACTIONS — 6 types matching backend enum, no Points system */}
         <div id="reactions-section" style={{ background: "#f9f9f9", borderRadius: 16, padding: "24px 32px", marginBottom: 40 }}>
           <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
-            {REACTIONS.map(({ icon, type, label }) => (
+            {REACTIONS.map(({ icon: Icon, type, label, color }) => (
               <button
                 key={type}
                 id={`reaction-${type}`}
                 onClick={() => handleReaction(type)}
                 style={{
-                  background: "#d9d9d9", border: "none", borderRadius: 16,
+                  background: "#fff", border: "1px solid #ddd", borderRadius: 16,
                   padding: "10px 14px", cursor: "pointer", display: "flex", flexDirection: "column",
-                  alignItems: "center", gap: 4, transition: "transform .15s",
+                  alignItems: "center", gap: 6, transition: "transform .15s, box-shadow .15s",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
                 }}
-                onMouseEnter={e => e.currentTarget.style.transform = "scale(1.12)"}
-                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 6px 12px rgba(0,0,0,0.1)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.05)"; }}
               >
-                <img src={icon} alt={label} style={{ width: 36, height: 36, objectFit: "contain" }} />
-                <span style={{ fontFamily: "Inter,sans-serif", fontSize: 13, fontWeight: 500, color: "#222" }}>
+                <Icon size={28} color={color} strokeWidth={2.5} />
+                <span style={{ fontFamily: "Inter,sans-serif", fontSize: 13, fontWeight: 600, color: "#444" }}>
                   {reactions[type] || 0}
                 </span>
               </button>
@@ -657,7 +676,13 @@ function ArticlePage() {
           <div style={{ background: "linear-gradient(to right,#170075,#2c00db)", height: 4 }} />
           <div style={{ padding: "32px", display: "flex", gap: 32, alignItems: "flex-start" }}>
             <div style={{ flex: "0 0 200px" }}>
-              <img src={article.author?.avatarUrl || AUTHOR_IMG} alt="author" style={{ width: 200, height: 240, objectFit: "cover", borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,.2)" }} />
+              {article.author?.avatarUrl ? (
+                <img src={article.author.avatarUrl} alt="author" style={{ width: 200, height: 240, objectFit: "cover", borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,.2)" }} />
+              ) : (
+                <div style={{ width: 200, height: 240, background: "#d9d9d9", borderRadius: 8, boxShadow: "0 4px 20px rgba(0,0,0,.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: "Montserrat,sans-serif", fontSize: 48, fontWeight: 900, color: "rgba(0,0,0,0.1)" }}>JK</span>
+                </div>
+              )}
             </div>
             <div style={{ flex: 1 }}>
               <h3 style={{
@@ -783,31 +808,36 @@ function ArticlePage() {
   );
 }
 
-function SectionPage() {
+function SectionPage({ categories = [] }) {
   const { section } = useParams();
-  const sec = SECTIONS.find(s => s.slug === section) || SECTIONS[0];
-  const { data: articlesData, isLoading } = useArticles(sec.slug);
-  const catArticles = articlesData?.articles || MOCK_ARTICLES.filter(a => a.category?.slug === sec.slug);
-  const topArticle = catArticles[0] || createMockArticle({ category: { name: sec.label, slug: sec.slug } });
+  
+  // Find category match from backend data or fallback to mock
+  const categoryMatch = categories.find(c => c.slug === section) || MOCK_CATEGORIES.find(c => c.slug === section) || { name: section.toUpperCase(), slug: section };
+  const color = FALLBACK_CATEGORY_COLORS[categoryMatch.slug] || FALLBACK_CATEGORY_COLORS.default;
+  
+  const { data: articlesData, isLoading } = useArticles(categoryMatch.slug);
+  const catArticles = articlesData?.articles || MOCK_ARTICLES.filter(a => a.category?.slug === categoryMatch.slug);
+  const topArticle = catArticles[0] || createMockArticle({ category: categoryMatch });
   const restArticles = catArticles.slice(1);
+
+  if (isLoading) return <LoadingSpinner message={`Loading ${categoryMatch.name} articles...`} />;
 
   return (
     <div>
       <SEOHead
-        title={sec.label}
-        description={MOCK_CATEGORIES.find(c => c.slug === sec.slug)?.description || `${sec.label} articles on JourKnows`}
+        title={categoryMatch.name}
+        description={categoryMatch.description || `${categoryMatch.name} articles on JourKnows`}
       />
 
       {/* Hero banner */}
-      <div style={{ position: "relative", height: 320, overflow: "hidden" }}>
-        <img src={HERO_IMG} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,.2),rgba(0,0,0,.7))" }} />
+      <div style={{ position: "relative", height: 320, background: "#1a1a1a", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom,rgba(0,0,0,.2),${color})`, opacity: 0.85 }} />
         <div style={{ position: "absolute", bottom: 40, left: 80 }}>
-          <h1 style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 48, color: "#fff", margin: "0 0 8px" }}>
-            {sec.label}
+          <h1 style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 48, color: "#fff", margin: "0 0 8px", textTransform: "uppercase" }}>
+            {categoryMatch.name}
           </h1>
-          <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 16, color: "rgba(255,255,255,0.85)", margin: 0 }}>
-            {MOCK_CATEGORIES.find(c => c.slug === sec.slug)?.description || ""}
+          <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 16, color: "rgba(255,255,255,0.85)", margin: 0, maxWidth: 600 }}>
+            {categoryMatch.description || ""}
           </p>
         </div>
       </div>
@@ -815,13 +845,13 @@ function SectionPage() {
       <div style={{ maxWidth: 1300, margin: "0 auto", padding: "40px 80px" }}>
         {/* Top article */}
         <div style={{ marginBottom: 32 }}>
-          <SectionHeader label="TOP ARTICLES" color={sec.color} />
+          <SectionHeader label="TOP ARTICLES" color={color} />
           <HeaderCard article={topArticle} />
         </div>
 
         {/* Latest in section */}
         <div>
-          <SectionHeader label="LATEST" color={sec.color} />
+          <SectionHeader label="LATEST" color={color} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, marginBottom: 24 }}>
             {restArticles.map((article, i) => (
               <SmallCard key={article.id || i} article={article} />
@@ -852,15 +882,23 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  // Fetch global categories for navigation and sections
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const categories = categoriesData?.categories || MOCK_CATEGORIES;
+
+  if (categoriesLoading) {
+    return <LoadingSpinner message="Starting JourKnows..." />;
+  }
+
   return (
     <div style={{ fontFamily: "Montserrat,sans-serif", minHeight: "100vh", background: "#fff" }}>
       <ScrollToTop />
-      <Navbar />
+      <Navbar categories={categories} />
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage categories={categories} />} />
         <Route path="/article/:slug" element={<ArticlePage />} />
-        <Route path="/:section" element={<SectionPage />} />
+        <Route path="/:section" element={<SectionPage categories={categories} />} />
       </Routes>
     </div>
   );
