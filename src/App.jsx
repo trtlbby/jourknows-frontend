@@ -1,17 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  getArticles,
-  getArticleBySlug,
-  getArticleReactions,
-  submitReaction,
-  getArticleComments,
-  submitComment,
-  MOCK_CATEGORIES,
-  MOCK_ARTICLES,
-  MOCK_COMMENTS,
-  MOCK_REACTIONS,
-  createMockArticle,
-} from "./services/api";
+import { useState, useCallback } from "react";
+import { MOCK_CATEGORIES, MOCK_ARTICLES, createMockArticle } from "./services/api";
+import { useArticles, useArticle, useReactions, useSubmitReaction, useComments, useSubmitComment } from "./hooks/useArticles";
+import SEOHead from "./components/SEOHead";
+import ArticleJsonLd from "./components/ArticleJsonLd";
 
 // ─── Asset URLs (from Figma) ──────────────────────────────────────────────────
 const LOGO       = "https://www.figma.com/api/mcp/asset/10230cad-3002-4e4d-b964-2e3e2f2df496";
@@ -353,16 +344,23 @@ function SectionHeader({ label, color, alignRight = false }) {
 // ─── Pages ────────────────────────────────────────────────────────────────────
 
 function HomePage({ onArticleClick }) {
-  // Use mock data — will be replaced by API calls when backend is ready
-  const heroArticle = MOCK_ARTICLES[0] || createMockArticle();
-  const latestArticles = MOCK_ARTICLES.slice(0, 4);
+  const { data: allArticlesData } = useArticles();
+  const allArticles = allArticlesData?.articles || MOCK_ARTICLES;
+
+  const heroArticle = allArticles[0] || createMockArticle();
+  const latestArticles = allArticles.slice(0, 4);
 
   const getArticlesForCategory = (slug) => {
-    return MOCK_ARTICLES.filter(a => a.category.slug === slug);
+    return allArticles.filter(a => a.category?.slug === slug);
   };
 
   return (
     <div>
+      <SEOHead
+        title="Home"
+        description="JourKnows — Your source for campus journalism, news, opinion, features, sports, sci-tech, and literary content."
+      />
+
       {/* HERO */}
       <div id="hero-section" style={{ position: "relative", height: 520, overflow: "hidden" }}>
         <img src={heroArticle.coverImageUrl || HERO_IMG} alt="hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -429,7 +427,6 @@ function HomePage({ onArticleClick }) {
           const catArticles = getArticlesForCategory(slug);
           const topArticle = catArticles[0] || createMockArticle({ category: { name: label, slug } });
           const restArticles = catArticles.slice(1, 4);
-          // Fill with mock if not enough
           while (restArticles.length < 3) {
             restArticles.push(createMockArticle({ category: { name: label, slug }, id: `placeholder-${slug}-${restArticles.length}` }));
           }
@@ -471,76 +468,35 @@ function HomePage({ onArticleClick }) {
 }
 
 function ArticlePage({ articleSlug, onBack, onArticleClick }) {
-  // Load article data — mock fallback
-  const [article, setArticle] = useState(null);
-  const [reactions, setReactions] = useState({ ...MOCK_REACTIONS });
-  const [comments, setComments] = useState(MOCK_COMMENTS);
+  // TanStack Query hooks
+  const { data: article, isLoading: articleLoading } = useArticle(articleSlug);
+  const { data: reactions } = useReactions(article?.id);
+  const { data: commentsData } = useComments(article?.id);
+  const submitReactionMutation = useSubmitReaction(article?.id);
+  const submitCommentMutation = useSubmitComment(article?.id);
+
+  const comments = commentsData?.comments || [];
   const [comment, setComment] = useState({ guestName: "", content: "" });
-  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    // Try to load from API, fall back to mock
-    let cancelled = false;
-    async function load() {
-      const data = await getArticleBySlug(articleSlug);
-      if (!cancelled) {
-        setArticle(data || MOCK_ARTICLES.find(a => a.slug === articleSlug) || createMockArticle({ slug: articleSlug }));
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [articleSlug]);
+  // Related articles from same category
+  const { data: relatedData } = useArticles(article?.category?.slug);
+  const relatedArticles = (relatedData?.articles || MOCK_ARTICLES)
+    .filter(a => a.slug !== articleSlug)
+    .slice(0, 4);
 
-  useEffect(() => {
-    if (!article?.id) return;
-    let cancelled = false;
-    async function loadEngagement() {
-      const [rxnData, cmtData] = await Promise.all([
-        getArticleReactions(article.id),
-        getArticleComments(article.id),
-      ]);
-      if (!cancelled) {
-        if (rxnData) setReactions(rxnData);
-        if (cmtData?.comments) setComments(cmtData.comments);
-      }
-    }
-    loadEngagement();
-    return () => { cancelled = true; };
-  }, [article?.id]);
+  const handleReaction = useCallback((type) => {
+    submitReactionMutation.mutate({ type });
+  }, [submitReactionMutation]);
 
-  const handleReaction = useCallback(async (type) => {
-    // Optimistic update
-    setReactions(prev => ({ ...prev, [type]: (prev[type] || 0) + 1 }));
-    // Fire and forget to backend
-    if (article?.id) {
-      await submitReaction(article.id, type);
-    }
-  }, [article?.id]);
-
-  const handleCommentSubmit = useCallback(async () => {
+  const handleCommentSubmit = useCallback(() => {
     if (!comment.guestName.trim() || !comment.content.trim()) return;
-    setSubmitting(true);
-    // Optimistic add
-    const newComment = {
-      id: crypto.randomUUID(),
-      guestName: comment.guestName,
-      content: comment.content,
-      createdAt: new Date().toISOString(),
-      replies: [],
-    };
-    setComments(prev => [...prev, newComment]);
-    setComment({ guestName: "", content: "" });
-    // Submit to backend
-    if (article?.id) {
-      await submitComment(article.id, {
-        guestName: comment.guestName,
-        content: comment.content,
-      });
-    }
-    setSubmitting(false);
-  }, [article?.id, comment]);
+    submitCommentMutation.mutate(
+      { guestName: comment.guestName, content: comment.content },
+      { onSuccess: () => setComment({ guestName: "", content: "" }) },
+    );
+  }, [comment, submitCommentMutation]);
 
-  if (!article) {
+  if (articleLoading || !article) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
         <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 18, color: "#888" }}>Loading article...</p>
@@ -548,13 +504,19 @@ function ArticlePage({ articleSlug, onBack, onArticleClick }) {
     );
   }
 
-  // Related articles = same category, different slug
-  const relatedArticles = MOCK_ARTICLES
-    .filter(a => a.category?.slug === article.category?.slug && a.slug !== article.slug)
-    .slice(0, 4);
+  const submitting = submitCommentMutation.isPending;
 
   return (
     <div>
+      <SEOHead
+        title={article.title}
+        description={article.excerpt}
+        image={article.coverImageUrl}
+        url={`/article/${article.slug}`}
+        type="article"
+      />
+      <ArticleJsonLd article={article} />
+
       {/* HERO */}
       <div style={{ position: "relative", height: 480, overflow: "hidden" }}>
         <img src={article.coverImageUrl || HERO_IMG} alt="hero" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -789,12 +751,18 @@ function ArticlePage({ articleSlug, onBack, onArticleClick }) {
 
 function SectionPage({ section, onArticleClick }) {
   const sec = SECTIONS.find(s => s.slug === section) || SECTIONS[0];
-  const catArticles = MOCK_ARTICLES.filter(a => a.category.slug === sec.slug);
+  const { data: articlesData } = useArticles(sec.slug);
+  const catArticles = articlesData?.articles || MOCK_ARTICLES.filter(a => a.category?.slug === sec.slug);
   const topArticle = catArticles[0] || createMockArticle({ category: { name: sec.label, slug: sec.slug } });
   const restArticles = catArticles.slice(1);
 
   return (
     <div>
+      <SEOHead
+        title={sec.label}
+        description={MOCK_CATEGORIES.find(c => c.slug === sec.slug)?.description || `${sec.label} articles on JourKnows`}
+      />
+
       {/* Hero banner */}
       <div style={{ position: "relative", height: 320, overflow: "hidden" }}>
         <img src={HERO_IMG} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
