@@ -12,6 +12,9 @@ import { Helmet } from "react-helmet-async";
  */
 export default function SEOHead({ title, description, image, url, type = "website" }) {
   const fullTitle = title ? `${title} | JourKnows` : "JourKnows — Campus Journalism";
+  
+  // Resolve absolute URL for canonicals
+  const absoluteUrl = url ? `${typeof window !== "undefined" ? window.location.origin : ""}${url}` : undefined;
 
   return (
     <Helmet>
@@ -22,7 +25,7 @@ export default function SEOHead({ title, description, image, url, type = "websit
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description || ""} />
       <meta property="og:type" content={type} />
-      {url && <meta property="og:url" content={url} />}
+      {absoluteUrl && <meta property="og:url" content={absoluteUrl} />}
       {image && <meta property="og:image" content={image} />}
 
       {/* Twitter */}
@@ -32,7 +35,7 @@ export default function SEOHead({ title, description, image, url, type = "websit
       {image && <meta name="twitter:image" content={image} />}
 
       {/* Canonical */}
-      {url && <link rel="canonical" href={url} />}
+      {absoluteUrl && <link rel="canonical" href={absoluteUrl} />}
     </Helmet>
   );
 }

@@ -7,7 +7,7 @@ import { Helmet } from "react-helmet-async";
  * @param {Object} props.article - Article object from API
  * @param {string} [props.siteUrl] - Base URL of the site
  */
-export default function ArticleJsonLd({ article, siteUrl = "" }) {
+export default function ArticleJsonLd({ article, siteUrl = typeof window !== "undefined" ? window.location.origin : "" }) {
   if (!article) return null;
 
   const jsonLd = {

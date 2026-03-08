@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import { MOCK_CATEGORIES, MOCK_ARTICLES, createMockArticle } from "./services/api";
 import { useArticles, useArticle, useReactions, useSubmitReaction, useComments, useSubmitComment } from "./hooks/useArticles";
 import SEOHead from "./components/SEOHead";
@@ -79,7 +80,21 @@ function timeAgo(dateStr) {
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
-function Navbar({ onNavigate, active }) {
+function Navbar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const path = location.pathname;
+  
+  let active = "HOME";
+  if (path !== "/") {
+    const section = path.split("/")[1];
+    if (section && section !== "article") {
+      active = section.toUpperCase();
+    } else {
+      active = "";
+    }
+  }
+
   return (
     <header id="main-navbar" style={{
       position: "sticky", top: 0, zIndex: 100,
@@ -90,7 +105,7 @@ function Navbar({ onNavigate, active }) {
         <img src={SEARCH_ICON} alt="search" style={{ width: 22, height: 22, marginRight: 12, opacity: 0.7, cursor: "pointer" }} />
 
         <div
-          onClick={() => onNavigate("home")}
+          onClick={() => navigate("/")}
           style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flex: 1, justifyContent: "center" }}
         >
           <img src={LOGO} alt="JourKnows" style={{ width: 54, height: 54, borderRadius: 8 }} />
@@ -101,7 +116,7 @@ function Navbar({ onNavigate, active }) {
             <button
               key={link}
               id={`nav-${link.toLowerCase()}`}
-              onClick={() => onNavigate(link === "HOME" ? "home" : link.toLowerCase())}
+              onClick={() => navigate(link === "HOME" ? "/" : `/${link.toLowerCase()}`)}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 fontFamily: "Montserrat, sans-serif",
@@ -207,11 +222,12 @@ function TagChips({ tags }) {
   );
 }
 
-function SmallCard({ article, onClick }) {
+function SmallCard({ article }) {
+  const navigate = useNavigate();
   const categoryName = article?.category?.name || "CATEGORY";
   return (
     <div
-      onClick={() => onClick(article)}
+      onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
       style={{
         background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
         cursor: "pointer", transition: "transform .2s, box-shadow .2s",
@@ -247,10 +263,11 @@ function SmallCard({ article, onClick }) {
   );
 }
 
-function MediumCard({ article, onClick }) {
+function MediumCard({ article }) {
+  const navigate = useNavigate();
   return (
     <div
-      onClick={() => onClick(article)}
+      onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
       style={{
         background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
         cursor: "pointer", display: "flex", gap: 0,
@@ -279,10 +296,11 @@ function MediumCard({ article, onClick }) {
   );
 }
 
-function HeaderCard({ article, onClick }) {
+function HeaderCard({ article }) {
+  const navigate = useNavigate();
   return (
     <div
-      onClick={() => onClick(article)}
+      onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
       style={{
         background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
         cursor: "pointer", display: "flex", gap: 0, height: 250,
@@ -343,7 +361,8 @@ function SectionHeader({ label, color, alignRight = false }) {
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 
-function HomePage({ onArticleClick }) {
+function HomePage() {
+  const navigate = useNavigate();
   const { data: allArticlesData, isLoading, isError } = useArticles();
   const allArticles = allArticlesData?.articles || MOCK_ARTICLES;
 
@@ -396,7 +415,7 @@ function HomePage({ onArticleClick }) {
             </div>
             <button
               id="hero-read-more"
-              onClick={() => onArticleClick(heroArticle)}
+              onClick={() => heroArticle?.slug && navigate(`/article/${heroArticle.slug}`)}
               style={{
                 background: "transparent", border: "1px solid #fff",
                 borderRadius: 20, padding: "10px 28px", cursor: "pointer",
@@ -416,7 +435,7 @@ function HomePage({ onArticleClick }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {latestArticles.map((article) => (
-            <MediumCard key={article.id} article={article} onClick={onArticleClick} />
+            <MediumCard key={article.id} article={article} />
           ))}
         </div>
       </div>
@@ -435,11 +454,11 @@ function HomePage({ onArticleClick }) {
             <div key={slug} style={{ padding: "32px 80px 48px", position: "relative" }}>
               <SectionHeader label={label} color={color} />
               <div style={{ marginBottom: 24 }}>
-                <HeaderCard article={topArticle} onClick={onArticleClick} />
+                <HeaderCard article={topArticle} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
                 {restArticles.map((article, i) => (
-                  <SmallCard key={article.id || i} article={article} onClick={onArticleClick} />
+                  <SmallCard key={article.id || i} article={article} />
                 ))}
               </div>
             </div>
@@ -457,7 +476,7 @@ function HomePage({ onArticleClick }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 24 }}>
           {getArticlesForCategory("literary").slice(0, 4).map((article, i) => (
-            <SmallCard key={article.id || i} article={article} onClick={onArticleClick} />
+            <SmallCard key={article.id || i} article={article} />
           ))}
         </div>
       </div>
@@ -467,7 +486,9 @@ function HomePage({ onArticleClick }) {
   );
 }
 
-function ArticlePage({ articleSlug, onBack, onArticleClick }) {
+function ArticlePage() {
+  const { slug: articleSlug } = useParams();
+  const navigate = useNavigate();
   // TanStack Query hooks
   const { data: article, isLoading: articleLoading } = useArticle(articleSlug);
   const { data: reactions } = useReactions(article?.id);
@@ -496,10 +517,23 @@ function ArticlePage({ articleSlug, onBack, onArticleClick }) {
     );
   }, [comment, submitCommentMutation]);
 
-  if (articleLoading || !article) {
+  if (articleLoading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
         <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 18, color: "#888" }}>Loading article...</p>
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "60vh" }}>
+        <h1 style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 900, fontSize: 48, color: "#00046D", margin: "0 0 16px" }}>404</h1>
+        <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 18, color: "#555", marginBottom: 24 }}>Article not found.</p>
+        <button
+          onClick={() => navigate("/")}
+          style={{ background: "#00046D", border: "none", borderRadius: 20, padding: "10px 32px", cursor: "pointer", fontFamily: "Montserrat,sans-serif", fontWeight: 800, color: "#fff", fontSize: 15 }}
+        >GO HOME</button>
       </div>
     );
   }
@@ -540,7 +574,7 @@ function ArticlePage({ articleSlug, onBack, onArticleClick }) {
             </div>
             <button
               id="article-back-btn"
-              onClick={onBack}
+              onClick={() => navigate(-1)}
               style={{ background: "transparent", border: "1px solid #fff", borderRadius: 20, padding: "8px 24px", cursor: "pointer", fontFamily: "Montserrat,sans-serif", fontWeight: 800, color: "#fff", fontSize: 15 }}
             >← BACK</button>
           </div>
@@ -738,7 +772,7 @@ function ArticlePage({ articleSlug, onBack, onArticleClick }) {
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20, marginBottom: 48 }}>
             {relatedArticles.map((a, i) => (
-              <SmallCard key={a.id || i} article={a} onClick={onArticleClick} />
+              <SmallCard key={a.id || i} article={a} />
             ))}
           </div>
         </div>
@@ -749,7 +783,8 @@ function ArticlePage({ articleSlug, onBack, onArticleClick }) {
   );
 }
 
-function SectionPage({ section, onArticleClick }) {
+function SectionPage() {
+  const { section } = useParams();
   const sec = SECTIONS.find(s => s.slug === section) || SECTIONS[0];
   const { data: articlesData, isLoading } = useArticles(sec.slug);
   const catArticles = articlesData?.articles || MOCK_ARTICLES.filter(a => a.category?.slug === sec.slug);
@@ -781,7 +816,7 @@ function SectionPage({ section, onArticleClick }) {
         {/* Top article */}
         <div style={{ marginBottom: 32 }}>
           <SectionHeader label="TOP ARTICLES" color={sec.color} />
-          <HeaderCard article={topArticle} onClick={onArticleClick} />
+          <HeaderCard article={topArticle} />
         </div>
 
         {/* Latest in section */}
@@ -789,7 +824,7 @@ function SectionPage({ section, onArticleClick }) {
           <SectionHeader label="LATEST" color={sec.color} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, marginBottom: 24 }}>
             {restArticles.map((article, i) => (
-              <SmallCard key={article.id || i} article={article} onClick={onArticleClick} />
+              <SmallCard key={article.id || i} article={article} />
             ))}
           </div>
           <div style={{ textAlign: "center", marginTop: 16 }}>
@@ -808,42 +843,25 @@ function SectionPage({ section, onArticleClick }) {
 }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
-  const [page, setPage] = useState("home");
-  const [activeNav, setActiveNav] = useState("HOME");
-  const [articleSlug, setArticleSlug] = useState(null);
-
-  const navigate = (dest) => {
-    setPage(dest);
-    setActiveNav(dest === "home" ? "HOME" : dest.toUpperCase());
-    setArticleSlug(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const navigateToArticle = (article) => {
-    setPage("article");
-    setArticleSlug(article?.slug || null);
-    setActiveNav("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
     <div style={{ fontFamily: "Montserrat,sans-serif", minHeight: "100vh", background: "#fff" }}>
-      <Navbar onNavigate={navigate} active={activeNav} />
+      <ScrollToTop />
+      <Navbar />
 
-      {page === "home" && (
-        <HomePage onArticleClick={navigateToArticle} />
-      )}
-      {page === "article" && (
-        <ArticlePage
-          articleSlug={articleSlug}
-          onBack={() => navigate("home")}
-          onArticleClick={navigateToArticle}
-        />
-      )}
-      {["news", "opinion", "features", "sports", "sci-tech", "literary"].includes(page) && (
-        <SectionPage section={page} onArticleClick={navigateToArticle} />
-      )}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/article/:slug" element={<ArticlePage />} />
+        <Route path="/:section" element={<SectionPage />} />
+      </Routes>
     </div>
   );
 }
