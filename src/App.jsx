@@ -5,6 +5,7 @@ import { useArticles, useArticle, useCategories, useReactions, useSubmitReaction
 import SEOHead from "./components/SEOHead";
 import ArticleJsonLd from "./components/ArticleJsonLd";
 import DOMPurify from "dompurify";
+import { formatDate, formatDateTime, timeAgo } from "./utils/formatters";
 
 import { 
   Search, Mail, Instagram, Facebook, Twitter, Chrome,
@@ -43,36 +44,6 @@ const REACTIONS = [
   { icon: Frown,    type: "sad",   label: "Sad",   color: "#4a90e2" },
   { icon: Angry,    type: "angry", label: "Angry", color: "#d0021b" },
 ];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric",
-  });
-}
-
-function formatDateTime(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric",
-    hour: "numeric", minute: "2-digit",
-  });
-}
-
-function timeAgo(dateStr) {
-  if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "1 day ago";
-  if (days < 30) return `${days} days ago`;
-  const months = Math.floor(days / 30);
-  return months === 1 ? "1 month ago" : `${months} months ago`;
-}
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
