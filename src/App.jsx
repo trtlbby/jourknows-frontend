@@ -4,6 +4,7 @@ import { MOCK_CATEGORIES, MOCK_ARTICLES, createMockArticle } from "./services/ap
 import { useArticles, useArticle, useCategories, useReactions, useSubmitReaction, useComments, useSubmitComment } from "./hooks/useArticles";
 import SEOHead from "./components/SEOHead";
 import ArticleJsonLd from "./components/ArticleJsonLd";
+import DOMPurify from "dompurify";
 
 import { 
   Search, Mail, Instagram, Facebook, Twitter, Chrome,
@@ -695,7 +696,7 @@ function ArticlePage() {
           <div
             id="article-body"
             style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 500, fontSize: 18, color: "#1e1e1e", lineHeight: 1.8, textAlign: "justify", marginBottom: 32 }}
-            dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.contentHtml) }}
           />
         ) : (
           [0, 1, 2, 3].map(i => (
