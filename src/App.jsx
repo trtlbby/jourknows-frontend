@@ -2,31 +2,18 @@ import { useState, useCallback, useEffect } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import { MOCK_CATEGORIES, MOCK_ARTICLES, createMockArticle } from "./services/api";
 import { useArticles, useArticle, useCategories, useReactions, useSubmitReaction, useComments, useSubmitComment } from "./hooks/useArticles";
-import SEOHead from "./components/SEOHead";
-import ArticleJsonLd from "./components/ArticleJsonLd";
 import DOMPurify from "dompurify";
 import { formatDate, formatDateTime, timeAgo } from "./utils/formatters";
 import { FALLBACK_CATEGORY_COLORS, REACTIONS } from "./constants";
-
+import ArticleJsonLd from "./components/ArticleJsonLd";
+import SEOHead from "./components/SEOHead";
+import { LoadingSpinner } from "./components/LoadingSpinner";
+import { TagChips } from "./components/TagChips";
+import { SectionHeader } from "./components/SectionHeader";
+import { ScrollToTop } from "./components/ScrollToTop";
 import { 
   Search, Mail, Instagram, Facebook, Twitter, Chrome, Menu, X
 } from "lucide-react";
-
-// ─── Shared UI Helpers ────────────────────────────────────────────────────────
-function LoadingSpinner({ message = "Loading..." }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "40vh", gap: 16 }}>
-      <div className="spinner" style={{
-        width: 40, height: 40, border: "4px solid rgba(0,4,109,0.1)", borderTop: "4px solid #00046D",
-        borderRadius: "50%", animation: "spin 1s linear infinite"
-      }} />
-      <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 16, color: "#555", fontWeight: 600 }}>{message}</p>
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-}
-
-// ─── Data ─────────────────────────────────────────────────────────────────────
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
@@ -233,18 +220,6 @@ function Footer() {
 }
 
 // ─── Card Components (Data-Driven) ────────────────────────────────────────────
-
-function TagChips({ tags }) {
-  if (!tags || tags.length === 0) return null;
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
-      {tags.map(tag => (
-        <span key={tag.slug} className="tag-chip">{tag.name}</span>
-      ))}
-    </div>
-  );
-}
-
 function SmallCard({ article }) {
   const navigate = useNavigate();
   const categoryName = article?.category?.name || "CATEGORY";
@@ -353,33 +328,6 @@ function HeaderCard({ article }) {
         </p>
         <TagChips tags={article?.tags} />
       </div>
-    </div>
-  );
-}
-
-function SectionHeader({ label, color, alignRight = false }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
-      {!alignRight && (
-        <div style={{ background: color, padding: "10px 20px", borderRadius: 0 }}>
-          <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 800, fontSize: 22, color: "#fafafa", letterSpacing: .5 }}>
-            {label}
-          </span>
-        </div>
-      )}
-      <div style={{
-        flex: 1, height: 4, borderRadius: 2,
-        background: alignRight
-          ? `linear-gradient(to left, ${color}, #fffbfb)`
-          : `linear-gradient(to right, #041eb0, #fffbfb)`,
-      }} />
-      {alignRight && (
-        <div style={{ background: color, padding: "10px 20px" }}>
-          <span style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 800, fontSize: 22, color: "#fafafa", letterSpacing: .5 }}>
-            {label}
-          </span>
-        </div>
-      )}
     </div>
   );
 }
@@ -888,15 +836,6 @@ function SectionPage({ categories = [] }) {
       <Footer />
     </div>
   );
-}
-
-// ─── App Shell ────────────────────────────────────────────────────────────────
-function ScrollToTop() {
-  const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [pathname]);
-  return null;
 }
 
 export default function App() {
