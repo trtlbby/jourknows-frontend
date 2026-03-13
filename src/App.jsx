@@ -8,9 +8,11 @@ import { FALLBACK_CATEGORY_COLORS, REACTIONS } from "./constants";
 import ArticleJsonLd from "./components/ArticleJsonLd";
 import SEOHead from "./components/SEOHead";
 import { LoadingSpinner } from "./components/LoadingSpinner";
-import { TagChips } from "./components/TagChips";
 import { SectionHeader } from "./components/SectionHeader";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { SmallCard } from "./components/SmallCard";
+import { MediumCard } from "./components/MediumCard";
+import { HeaderCard } from "./components/HeaderCard";
 import { 
   Search, Mail, Instagram, Facebook, Twitter, Chrome, Menu, X
 } from "lucide-react";
@@ -219,118 +221,6 @@ function Footer() {
   );
 }
 
-// ─── Card Components (Data-Driven) ────────────────────────────────────────────
-function SmallCard({ article }) {
-  const navigate = useNavigate();
-  const categoryName = article?.category?.name || "CATEGORY";
-  return (
-    <div
-      onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
-      style={{
-        background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
-        cursor: "pointer", transition: "transform .2s, box-shadow .2s",
-        minWidth: 260,
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,77,.15)"; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
-    >
-      <div style={{
-        background: article?.coverImageUrl ? `url(${article.coverImageUrl}) center/cover` : "#d9d9d9",
-        height: 168, position: "relative",
-      }}>
-        <span style={{
-          position: "absolute", bottom: 8, left: 8,
-          background: "rgba(0,0,0,0.55)", color: "#fff",
-          fontFamily: "Montserrat,sans-serif", fontWeight: 700,
-          fontSize: 11, padding: "3px 8px", borderRadius: 4,
-        }}>{categoryName.toUpperCase()}</span>
-      </div>
-      <div style={{ padding: "12px 12px 16px" }}>
-        <p style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 700, fontSize: 14, color: "#151515", margin: "0 0 8px", lineHeight: 1.4 }}>
-          {article?.title || "Headline goes here. Headline goes here."}
-        </p>
-        <p style={{ fontFamily: "Inter,sans-serif", fontStyle: "italic", fontSize: 12, color: "#555", margin: "0 0 4px" }}>
-          by {article?.author?.fullName || "Unknown Author"}
-        </p>
-        <p style={{ fontFamily: "Inter,sans-serif", fontSize: 11, color: "#888" }}>
-          {timeAgo(article?.publishedAt)}
-        </p>
-        <TagChips tags={article?.tags} />
-      </div>
-    </div>
-  );
-}
-
-function MediumCard({ article }) {
-  const navigate = useNavigate();
-  return (
-    <div
-      className="card-collapse"
-      onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
-      style={{
-        background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
-        cursor: "pointer", display: "flex", gap: 0,
-        transition: "transform .2s, box-shadow .2s",
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,77,.12)"; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
-    >
-      <div style={{
-        background: article?.coverImageUrl ? `url(${article.coverImageUrl}) center/cover` : "#d9d9d9",
-        width: 220, minWidth: 220, borderRadius: "10px 0 0 10px",
-      }} />
-      <div style={{ padding: "16px 18px", flex: 1 }}>
-        <p style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 700, fontSize: 16, color: "#151515", margin: "0 0 8px", lineHeight: 1.4 }}>
-          {article?.title || "Headline goes here. Headline goes here."}
-        </p>
-        <p style={{ fontFamily: "Inter,sans-serif", fontStyle: "italic", fontSize: 13, color: "#555", margin: "0 0 4px" }}>
-          by {article?.author?.fullName || "Unknown Author"}
-        </p>
-        <p style={{ fontFamily: "Inter,sans-serif", fontSize: 12, color: "#888" }}>
-          {timeAgo(article?.publishedAt)}
-        </p>
-        <TagChips tags={article?.tags} />
-      </div>
-    </div>
-  );
-}
-
-function HeaderCard({ article }) {
-  const navigate = useNavigate();
-  return (
-    <div
-      className="card-collapse"
-      onClick={() => article?.slug && navigate(`/article/${article.slug}`)}
-      style={{
-        background: "#f4f4f4", borderRadius: 10, overflow: "hidden",
-        cursor: "pointer", display: "flex", gap: 0, height: 250,
-        transition: "transform .2s, box-shadow .2s",
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(0,0,77,.18)"; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
-    >
-      <div style={{
-        background: article?.coverImageUrl ? `url(${article.coverImageUrl}) center/cover` : "#d9d9d9",
-        width: 480, minWidth: 480,
-      }} />
-      <div style={{ padding: "24px 24px", flex: 1 }}>
-        <p style={{ fontFamily: "Montserrat,sans-serif", fontWeight: 700, fontSize: 22, color: "#151515", margin: "0 0 12px", lineHeight: 1.4 }}>
-          {article?.title || "Headline goes here. Headline goes here. Headline."}
-        </p>
-        <p style={{ fontFamily: "Inter,sans-serif", fontStyle: "italic", fontSize: 14, color: "#555", margin: "0 0 8px" }}>
-          by {article?.author?.fullName || "Unknown Author"}
-        </p>
-        <p style={{ fontFamily: "Inter,sans-serif", fontSize: 13, color: "#888", marginBottom: 12 }}>
-          {timeAgo(article?.publishedAt)}
-        </p>
-        <p style={{ fontFamily: "Montserrat,sans-serif", fontSize: 14, color: "#333", lineHeight: 1.6 }}>
-          {article?.excerpt || "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore."}
-        </p>
-        <TagChips tags={article?.tags} />
-      </div>
-    </div>
-  );
-}
 
 // ─── Pages ────────────────────────────────────────────────────────────────────
 
